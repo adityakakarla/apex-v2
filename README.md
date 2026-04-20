@@ -20,3 +20,12 @@ data-dir/
 In the top-right corner, there is a "Copy Claude Command" button - copy and paste this into your terminal. This will open a Claude Code window, where you can request a new course, change a section, add more quiz questions, etc.
 
 A CLAUDE.md file exists in the directory, so don't worry about passing in context regarding file/folder structure.
+
+## Install
+
+To install, download the .dmg file and drag Apex into Applications.
+
+You may need to run this command to open the app:
+```bash
+xattr -cr /Applications/Apex.app
+```

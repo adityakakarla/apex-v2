@@ -2,12 +2,6 @@
 
 A desktop learning platform built with Tauri (Svelte + Rust). Uses Claude Code to generate and manage courses stored locally on your machine.
 
-## Features
-
-- AI-generated courses with markdown lessons and quizzes
-- Progress tracking per course
-- All course data stored in your system's app data directory
-
 ## How It Works
 
 On first launch, the app initializes a data directory and a `CLAUDE.md` file that instructs Claude on how to create courses. Courses are structured as:

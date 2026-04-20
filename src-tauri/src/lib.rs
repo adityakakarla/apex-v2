@@ -1,0 +1,226 @@
+use arboard::Clipboard;
+use std::fs::{self, read_dir, read_to_string};
+
+use directories::ProjectDirs;
+
+#[tauri::command]
+fn is_initialized() -> bool {
+    if let Some(proj_dirs) = ProjectDirs::from("com", "adityakakarla", "apex-v2") {
+        let data_dir = proj_dirs.data_dir();
+        data_dir.exists()
+    } else {
+        false
+    }
+}
+
+#[tauri::command]
+fn get_courses() -> Vec<String> {
+    if let Some(proj_dirs) = ProjectDirs::from("com", "adityakakarla", "apex-v2") {
+        let data_dir = proj_dirs.data_dir();
+        read_dir(data_dir)
+            .map(|entries| {
+                entries
+                    .filter_map(|e| e.ok())
+                    .filter(|e| e.path().is_dir())
+                    .filter_map(|e| e.file_name().into_string().ok())
+                    .collect()
+            })
+            .unwrap_or_default()
+    } else {
+        Vec::new()
+    }
+}
+
+#[tauri::command]
+fn get_course_sections(course: String) -> Vec<String> {
+    if let Some(proj_dirs) = ProjectDirs::from("com", "adityakakarla", "apex-v2") {
+        let data_dir = proj_dirs.data_dir();
+        let index_path = data_dir.join(course).join("index.json");
+        let contents = std::fs::read_to_string(index_path).unwrap_or_default();
+        let json: serde_json::Value = serde_json::from_str(&contents).unwrap_or_default();
+        json["order"]
+            .as_array()
+            .map(|arr| {
+                arr.iter()
+                    .filter_map(|v| v.as_str().map(String::from))
+                    .collect()
+            })
+            .unwrap_or_default()
+    } else {
+        Vec::new()
+    }
+}
+
+#[tauri::command]
+fn get_course_section_contents(course: String, section: String) -> Vec<String> {
+    if let Some(proj_dirs) = ProjectDirs::from("com", "adityakakarla", "apex-v2") {
+        let data_dir = proj_dirs.data_dir();
+        let index_path = data_dir.join(course).join(section).join("index.json");
+        let contents = std::fs::read_to_string(index_path).unwrap_or_default();
+        let json: serde_json::Value = serde_json::from_str(&contents).unwrap_or_default();
+        json["order"]
+            .as_array()
+            .map(|arr| {
+                arr.iter()
+                    .filter_map(|v| v.as_str().map(String::from))
+                    .collect()
+            })
+            .unwrap_or_default()
+    } else {
+        Vec::new()
+    }
+}
+
+#[tauri::command]
+fn get_markdown(course: String, section: String, content: String) -> String {
+    if let Some(proj_dirs) = ProjectDirs::from("com", "adityakakarla", "apex-v2") {
+        let path = proj_dirs
+            .data_dir()
+            .join(course)
+            .join(section)
+            .join(content);
+        read_to_string(path).unwrap_or_default()
+    } else {
+        String::new()
+    }
+}
+
+#[tauri::command]
+fn get_quiz(course: String, section: String, content: String) -> Vec<(String, String)> {
+    if let Some(proj_dirs) = ProjectDirs::from("com", "adityakakarla", "apex-v2") {
+        let path = proj_dirs
+            .data_dir()
+            .join(course)
+            .join(section)
+            .join(content);
+        let contents = read_to_string(path).unwrap_or_default();
+        let json: serde_json::Value = serde_json::from_str(&contents).unwrap_or_default();
+        if let Some(obj) = json.as_object() {
+            obj.iter()
+                .filter_map(|(k, v)| v.as_str().map(|s| (k.clone(), s.to_string())))
+                .collect()
+        } else {
+            Vec::new()
+        }
+    } else {
+        Vec::new()
+    }
+}
+
+#[tauri::command]
+fn get_claude_command() -> String {
+    if let Some(proj_dirs) = ProjectDirs::from("com", "adityakakarla", "apex-v2") {
+        let data_dir = proj_dirs.data_dir();
+        format!("cd \"{}\" && claude", data_dir.display().to_string())
+    } else {
+        String::new()
+    }
+}
+
+#[tauri::command]
+fn initialize_directory() -> bool {
+    if let Some(proj_dirs) = ProjectDirs::from("com", "adityakakarla", "apex-v2") {
+        let data_dir = proj_dirs.data_dir();
+
+        if fs::create_dir_all(data_dir).is_err() {
+            return false;
+        }
+
+        let file_path = data_dir.join("CLAUDE.md");
+        fs::write(
+            file_path,
+            "
+You are an AI agent in charge of building out courses. Each course is a
+subdirectory in the directory you are currently in. Within each course there
+are multiple other subdirectories, corresponding to course sections. Within
+each section, there are markdown files (corresponding to course content) and
+json files (corresponding to questions and answers for quizzes).
+
+Markdown must follow commonmark guidelines. Be concise, but powerful. Humans
+must enjoy reading it, and it should not feel like a waste of time. Use
+cutting-edge teaching principles. Avoid using HTML.
+
+The JSON files should look like:
+{'what is 2 + 2': '4', 'what is 3 + 3': '6'}, but using double quotes instead
+of single quotes
+
+You should also create index.json files for any new course or course section
+you create. It should also be updated for each new markdown/json file created,
+otherwise the apps won't function properly.
+
+index.json (for both course and course section directories) should look like:
+{
+ 'order': ['x.md', 'y.json', 'z.md']
+}
+
+Each course directory may also contain a progress.json file. This is managed
+automatically by the app to track which files the user has completed. Do not
+create or edit this file manually.
+",
+        )
+        .is_ok()
+    } else {
+        false
+    }
+}
+
+#[tauri::command]
+fn copy_to_clipboard(text: String) -> bool {
+    Clipboard::new()
+        .and_then(|mut cb| cb.set_text(text))
+        .is_ok()
+}
+
+#[tauri::command]
+fn get_progress(course: String) -> Vec<String> {
+    if let Some(proj_dirs) = ProjectDirs::from("com", "adityakakarla", "apex-v2") {
+        let progress_path = proj_dirs.data_dir().join(&course).join("progress.json");
+        let contents = read_to_string(progress_path).unwrap_or_else(|_| "[]".to_string());
+        let json: serde_json::Value = serde_json::from_str(&contents).unwrap_or(serde_json::Value::Array(vec![]));
+        json.as_array()
+            .map(|arr| arr.iter().filter_map(|v| v.as_str().map(String::from)).collect())
+            .unwrap_or_default()
+    } else {
+        Vec::new()
+    }
+}
+
+#[tauri::command]
+fn mark_complete(course: String, section: String, content: String) -> bool {
+    if let Some(proj_dirs) = ProjectDirs::from("com", "adityakakarla", "apex-v2") {
+        let progress_path = proj_dirs.data_dir().join(&course).join("progress.json");
+        let contents = read_to_string(&progress_path).unwrap_or_else(|_| "[]".to_string());
+        let mut json: serde_json::Value = serde_json::from_str(&contents)
+            .unwrap_or(serde_json::Value::Array(vec![]));
+        let key = format!("{}/{}", section, content);
+        if let Some(arr) = json.as_array_mut() {
+            if !arr.iter().any(|v| v.as_str() == Some(&key)) {
+                arr.push(serde_json::Value::String(key));
+            }
+        }
+        fs::write(progress_path, serde_json::to_string(&json).unwrap_or_default()).is_ok()
+    } else {
+        false
+    }
+}
+
+#[cfg_attr(mobile, tauri::mobile_entry_point)]
+pub fn run() {
+    tauri::Builder::default()
+        .plugin(tauri_plugin_opener::init())
+        .invoke_handler(tauri::generate_handler![
+            is_initialized,
+            get_courses,
+            get_course_sections,
+            get_course_section_contents,
+            get_markdown,
+            get_quiz,
+            get_claude_command,
+            initialize_directory,
+            get_progress,
+            mark_complete,
+            copy_to_clipboard
+        ])
+        .run(tauri::generate_context!())
+        .expect("error while running tauri application");
+}

@@ -164,11 +164,17 @@
     </div>
 {:else}
     <div class="shell">
+        <!-- Top header -->
+        <header class="topbar">
+            <span class="wordmark">apex</span>
+            <button class="btn-copy-cmd" class:copied onclick={copyClaudeCommand}>
+                {copied ? "Copied!" : "Copy Claude Command"}
+            </button>
+        </header>
+
+        <div class="shell-body">
         <!-- Sidebar: courses -->
         <aside class="sidebar-courses">
-            <div class="sidebar-header">
-                <span class="wordmark">apex</span>
-            </div>
             <nav class="course-list">
                 {#each courses as course}
                     {@const done = sections.length > 0 && selectedCourse === course
@@ -195,9 +201,6 @@
         <!-- Sidebar: sections -->
         {#if selectedCourse}
             <aside class="sidebar-sections">
-                <div class="sidebar-header">
-                    <span class="section-title">{fileLabel(selectedCourse)}</span>
-                </div>
                 <nav class="section-list">
                     {#each sections as section}
                         <button
@@ -234,10 +237,6 @@
 
         <!-- Main content area -->
         <main class="main">
-            <button class="btn-copy-cmd" class:copied onclick={copyClaudeCommand}>
-                {copied ? "Copied!" : "Copy Claude Command"}
-            </button>
-
             {#if !selectedContent}
                 <div class="empty-state">
                     {#if !selectedCourse}
@@ -335,6 +334,7 @@
                 </div>
             {/if}
         </main>
+        </div><!-- shell-body -->
     </div>
 {/if}
 
@@ -383,7 +383,23 @@
     /* --- Shell layout --- */
     .shell {
         display: flex;
+        flex-direction: column;
         height: 100vh;
+        overflow: hidden;
+    }
+    .topbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 20px;
+        height: 48px;
+        flex-shrink: 0;
+        border-bottom: 2px solid #2e3140;
+        background: #0e0f14;
+    }
+    .shell-body {
+        display: flex;
+        flex: 1;
         overflow: hidden;
     }
 
@@ -538,14 +554,9 @@
         flex: 1;
         overflow-y: auto;
         background: #0b0c10;
-        position: relative;
     }
     .btn-copy-cmd {
-        position: absolute;
-        top: 16px;
-        right: 20px;
-        z-index: 10;
-        padding: 7px 14px;
+        padding: 6px 14px;
         background: none;
         border: 1px solid #3a3c48;
         border-radius: 4px;
@@ -553,7 +564,7 @@
         font-family: "DM Mono", monospace;
         font-size: 11px;
         cursor: pointer;
-        transition: border-color 0.15s, color 0.15s, background 0.15s;
+        transition: border-color 0.15s, color 0.15s;
         letter-spacing: 0.02em;
     }
     .btn-copy-cmd:hover { border-color: #e8a87c; color: #e8a87c; }
